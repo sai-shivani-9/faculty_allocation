@@ -19,6 +19,7 @@ export const PreferenceSubmission: React.FC<PreferenceSubmissionProps> = ({ user
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [showSemesterFilter, setShowSemesterFilter] = useState(false);
+  const [currentView, setCurrentView] = useState<'selection' | 'filtered'>('selection');
 
   useEffect(() => {
     loadEligibleSubjects();
@@ -26,6 +27,7 @@ export const PreferenceSubmission: React.FC<PreferenceSubmissionProps> = ({ user
       setPreferences([...user.preferences]);
       setSubmitted(user.preferencesSubmitted);
       if (user.preferencesSubmitted) {
+        setCurrentView('filtered');
         setShowSemesterFilter(true);
       }
     }
@@ -100,8 +102,13 @@ export const PreferenceSubmission: React.FC<PreferenceSubmissionProps> = ({ user
 
     AuthService.updateUserPreferences(user.id, preferences);
     setSubmitted(true);
+    setCurrentView('filtered');
     setShowSemesterFilter(true);
-    alert('Preferences submitted successfully! You can now filter subjects by semester.');
+    // Set default to first available semester
+    if (availableSemesters.length > 0) {
+      setSelectedSemester(availableSemesters[0]);
+    }
+    alert('Preferences submitted successfully! Use the semester filter to view your subjects.');
   };
 
   const handleDownloadPreferences = () => {
@@ -120,6 +127,135 @@ export const PreferenceSubmission: React.FC<PreferenceSubmissionProps> = ({ user
     return user.userType === 'Professor' ? 'Semesters 1-4' : 'Semesters 5-8';
   };
 
+  // If showing filtered view after submission
+  if (currentView === 'filtered' && submitted) {
+    return (
+      <div className="min-h-screen bg-white">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {/* Header */}
+          <div className="bg-gradient-to-r from-blue-600 to-blue-800 rounded-xl shadow-xl p-8 text-white mb-8">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <button
+                  onClick={onBack}
+                  className="p-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition-all duration-200"
+                >
+                  <ArrowLeft className="h-6 w-6" />
+                </button>
+                <div>
+                  <h1 className="text-3xl font-bold">Your Subject Preferences</h1>
+                  <p className="text-blue-100">
+                    {user.department} - {getSemesterRange()}
+                  </p>
+                </div>
+              </div>
+              <FileText className="h-12 w-12 text-blue-200" />
+            </div>
+          </div>
+
+          {/* Status Alert */}
+          <div className="bg-green-50 border-2 border-green-200 rounded-xl p-6 mb-8">
+            <div className="flex items-center space-x-3">
+              <CheckCircle className="h-6 w-6 text-green-600" />
+              <div>
+                <h3 className="text-lg font-semibold text-green-900">Preferences Submitted Successfully</h3>
+                <p className="text-green-700">Your subject preferences have been recorded. Use the semester filter below to view subjects by semester.</p>
+              </div>
+            </div>
+            <button
+              onClick={handleDownloadPreferences}
+              className="mt-4 flex items-center space-x-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-all duration-200"
+            >
+              <Download className="h-4 w-4" />
+              <span>Download Preferences PDF</span>
+            </button>
+          </div>
+
+          {/* Semester Filter */}
+          <div className="bg-white border-2 border-blue-200 rounded-xl shadow-lg p-6 mb-8">
+            <div className="flex items-center space-x-3 mb-4">
+              <Filter className="h-5 w-5 text-blue-600" />
+              <h3 className="text-lg font-semibold text-gray-900">Filter by Semester</h3>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <button
+                onClick={() => handleSemesterFilter(null)}
+                className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+                  selectedSemester === null
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                All Subjects ({eligibleSubjects.length})
+              </button>
+              {availableSemesters.map(semester => {
+                const semesterSubjects = eligibleSubjects.filter(s => s.semester === semester);
+                return (
+                  <button
+                    key={semester}
+                    onClick={() => handleSemesterFilter(semester)}
+                    className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+                      selectedSemester === semester
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    Semester {semester} ({semesterSubjects.length})
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Filtered Subjects Display */}
+          <div className="bg-white border-2 border-blue-200 rounded-xl shadow-lg p-6 mb-8">
+            <h3 className="text-xl font-semibold text-gray-900 mb-4">
+              {selectedSemester ? `Semester ${selectedSemester} Subjects` : 'All Your Subjects'} 
+              ({filteredSubjects.length})
+            </h3>
+            <div className="responsive-grid">
+              {filteredSubjects.map((subject) => {
+                const preferenceIndex = preferences.indexOf(subject.id);
+                return (
+                  <div
+                    key={subject.id}
+                    className="p-4 rounded-lg border-2 bg-blue-50 border-blue-300 hover:shadow-md transition-all duration-200"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <h5 className="font-medium text-gray-900">{subject.name}</h5>
+                        <p className="text-sm text-gray-600">
+                          {subject.code} - Year {subject.year}, Semester {subject.semester}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {subject.type} • {subject.credits} Credits
+                        </p>
+                      </div>
+                      <div className="flex flex-col items-end space-y-1">
+                        <span className="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded-full font-medium">
+                          {subject.credits} Credits
+                        </span>
+                        <span className="text-xs px-2 py-1 bg-green-100 text-green-800 rounded-full font-medium">
+                          Priority #{preferenceIndex + 1}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            
+            {filteredSubjects.length === 0 && (
+              <div className="text-center py-8">
+                <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+                <p className="text-gray-600">No subjects found for the selected filter.</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="min-h-screen bg-white">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -177,41 +313,6 @@ export const PreferenceSubmission: React.FC<PreferenceSubmissionProps> = ({ user
           </div>
         )}
 
-        {/* Semester Filter (Only shown after submission) */}
-        {showSemesterFilter && submitted && (
-          <div className="bg-white border-2 border-blue-200 rounded-xl shadow-lg p-6 mb-8">
-            <div className="flex items-center space-x-3 mb-4">
-              <Filter className="h-5 w-5 text-blue-600" />
-              <h3 className="text-lg font-semibold text-gray-900">Filter by Semester</h3>
-            </div>
-            <div className="flex flex-wrap gap-3">
-              <button
-                onClick={() => handleSemesterFilter(null)}
-                className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
-                  selectedSemester === null
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                All Subjects
-              </button>
-              {availableSemesters.map(semester => (
-                <button
-                  key={semester}
-                  onClick={() => handleSemesterFilter(semester)}
-                  className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
-                    selectedSemester === semester
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  Semester {semester}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
         {/* Available Subjects (Only shown before submission) */}
         {!submitted && (
           <div className="bg-white border-2 border-blue-200 rounded-xl shadow-lg p-6 mb-8">
@@ -247,44 +348,6 @@ export const PreferenceSubmission: React.FC<PreferenceSubmissionProps> = ({ user
                   </div>
                 </div>
               ))}
-            </div>
-          </div>
-        )}
-
-        {/* Filtered Subjects Display (Only shown after submission) */}
-        {submitted && (
-          <div className="bg-white border-2 border-blue-200 rounded-xl shadow-lg p-6 mb-8">
-            <h3 className="text-xl font-semibold text-gray-900 mb-4">
-              {selectedSemester ? `Semester ${selectedSemester} Subjects` : 'All Your Subjects'} 
-              ({filteredSubjects.length})
-            </h3>
-            <div className="responsive-grid">
-              {filteredSubjects.map((subject) => {
-                const preferenceIndex = preferences.indexOf(subject.id);
-                return (
-                  <div
-                    key={subject.id}
-                    className="p-4 rounded-lg border-2 bg-blue-50 border-blue-300"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <h5 className="font-medium text-gray-900">{subject.name}</h5>
-                        <p className="text-sm text-gray-600">
-                          {subject.code} - Year {subject.year}, Semester {subject.semester}
-                        </p>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <span className="text-xs px-2 py-1 bg-blue-100 text-blue-800 rounded-full font-medium">
-                          {subject.credits} Credits
-                        </span>
-                        <span className="text-xs px-2 py-1 bg-green-100 text-green-800 rounded-full font-medium">
-                          Priority #{preferenceIndex + 1}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
             </div>
           </div>
         )}
