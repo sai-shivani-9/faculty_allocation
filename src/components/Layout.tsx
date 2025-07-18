@@ -29,7 +29,7 @@ export const Layout: React.FC<LayoutProps> = ({ user, children, onLogout }) => {
                 />
                 <div className="nitj-title-section">
                   <h1 className="nitj-title-hindi">
-                    राष्ट्रीय प्रौद्योगिकी संस्थान जालंधर
+                   डॉ बी आर अम्बेडकर राष्ट्रीय प्रौद्योगिकी संस्थान जालंधर
                   </h1>
                   <h2 className="nitj-title-english">
                     Dr. B.R. Ambedkar National Institute of Technology, Jalandhar
