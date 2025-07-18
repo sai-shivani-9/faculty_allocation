@@ -12,35 +12,44 @@ interface PreferenceSubmissionProps {
 
 export const PreferenceSubmission: React.FC<PreferenceSubmissionProps> = ({ user, onBack }) => {
   const [eligibleSubjects, setEligibleSubjects] = useState<Subject[]>([]);
+  const [allSubjects, setAllSubjects] = useState<Subject[]>([]);
+  const [selectedSemester, setSelectedSemester] = useState<number | null>(null);
+  const [availableSemesters, setAvailableSemesters] = useState<number[]>([]);
   const [preferences, setPreferences] = useState<string[]>([]);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
-    loadEligibleSubjects();
+    loadAllSubjects();
     if (user.preferences) {
       setPreferences([...user.preferences]);
       setSubmitted(user.preferencesSubmitted);
     }
   }, [user]);
 
-  const loadEligibleSubjects = () => {
-    const semesterInfo = AuthService.isValidSemester();
-    const allowedSemesterType = semesterInfo.allowedSemester;
-    
+  useEffect(() => {
+    if (selectedSemester !== null) {
+      loadEligibleSubjects();
+    }
+  }, [selectedSemester]);
+
+  const loadAllSubjects = () => {
     let subjects = getSubjectsByDepartment(user.department).filter(subject => {
-      if (!subject.eligibleFor.includes(user.userType)) return false;
-      
-      const isOddSemester = subject.semester % 2 === 1;
-      const isEvenSemester = subject.semester % 2 === 0;
-      
-      if (allowedSemesterType === 'odd' && !isOddSemester) return false;
-      if (allowedSemesterType === 'even' && !isEvenSemester) return false;
-      
-      return true;
+      return subject.eligibleFor.includes(user.userType);
     });
 
-    setEligibleSubjects(subjects);
+    setAllSubjects(subjects);
+    
+    // Get unique semesters
+    const semesters = [...new Set(subjects.map(s => s.semester))].sort();
+    setAvailableSemesters(semesters);
+  };
+
+  const loadEligibleSubjects = () => {
+    if (selectedSemester === null) return;
+    
+    const semesterSubjects = allSubjects.filter(subject => subject.semester === selectedSemester);
+    setEligibleSubjects(semesterSubjects);
   };
 
   const handleDragStart = (e: React.DragEvent, index: number) => {
@@ -95,6 +104,16 @@ export const PreferenceSubmission: React.FC<PreferenceSubmissionProps> = ({ user
     return eligibleSubjects.find(subject => subject.id === id);
   };
 
+  const handleSemesterSelect = (semester: number) => {
+    setSelectedSemester(semester);
+    setPreferences([]); // Reset preferences when changing semester
+  };
+
+  const handleBackToSemesterSelection = () => {
+    setSelectedSemester(null);
+    setPreferences([]);
+    setEligibleSubjects([]);
+  };
   return (
     <div className="min-h-screen bg-white">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -103,22 +122,51 @@ export const PreferenceSubmission: React.FC<PreferenceSubmissionProps> = ({ user
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <button
-                onClick={onBack}
+                onClick={selectedSemester !== null ? handleBackToSemesterSelection : onBack}
                 className="p-2 bg-white bg-opacity-20 hover:bg-opacity-30 rounded-lg transition-all duration-200"
               >
                 <ArrowLeft className="h-6 w-6" />
               </button>
               <div>
-                <h1 className="text-3xl font-bold">Subject Preferences</h1>
-                <p className="text-blue-100">{user.department}</p>
+                <h1 className="text-3xl font-bold">
+                  {selectedSemester === null ? 'Select Semester' : `Subject Preferences - Semester ${selectedSemester}`}
+                </h1>
+                <p className="text-blue-100">
+                  {selectedSemester === null ? 'Choose a semester to view subjects' : user.department}
+                </p>
               </div>
             </div>
             <FileText className="h-12 w-12 text-blue-200" />
           </div>
         </div>
 
+        {/* Semester Selection */}
+        {selectedSemester === null && (
+          <div className="bg-white border-2 border-blue-200 rounded-xl shadow-lg p-6 mb-8">
+            <h3 className="text-xl font-semibold text-gray-900 mb-4">Select Semester</h3>
+            <p className="text-gray-600 mb-6">Choose the semester for which you want to submit subject preferences:</p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              {availableSemesters.map(semester => (
+                <button
+                  key={semester}
+                  onClick={() => handleSemesterSelect(semester)}
+                  className="p-6 bg-blue-50 border-2 border-blue-200 rounded-xl hover:bg-blue-100 hover:border-blue-300 transition-all duration-200 transform hover:scale-105"
+                >
+                  <div className="text-center">
+                    <div className="text-2xl font-bold text-blue-600 mb-2">Semester {semester}</div>
+                    <div className="text-sm text-gray-600">{semester % 2 === 1 ? 'Odd' : 'Even'} Semester</div>
+                    <div className="text-xs text-blue-500 mt-1">
+                      {allSubjects.filter(s => s.semester === semester).length} subjects
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Status Alert */}
-        {submitted ? (
+        {selectedSemester !== null && submitted ? (
           <div className="bg-green-50 border-2 border-green-200 rounded-xl p-6 mb-8">
             <div className="flex items-center space-x-3">
               <CheckCircle className="h-6 w-6 text-green-600" />
@@ -135,7 +183,7 @@ export const PreferenceSubmission: React.FC<PreferenceSubmissionProps> = ({ user
               <span>Download Preferences PDF</span>
             </button>
           </div>
-        ) : (
+        ) : selectedSemester !== null && (
           <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-6 mb-8">
             <div className="flex items-center space-x-3">
               <AlertCircle className="h-6 w-6 text-blue-600" />
@@ -148,7 +196,7 @@ export const PreferenceSubmission: React.FC<PreferenceSubmissionProps> = ({ user
         )}
 
         {/* Available Subjects */}
-        {!submitted && (
+        {selectedSemester !== null && !submitted && (
           <div className="bg-white border-2 border-blue-200 rounded-xl shadow-lg p-6 mb-8">
             <h3 className="text-xl font-semibold text-gray-900 mb-4">Available Subjects</h3>
             <div className="responsive-grid">
@@ -185,7 +233,7 @@ export const PreferenceSubmission: React.FC<PreferenceSubmissionProps> = ({ user
         )}
 
         {/* Preference Order */}
-        {preferences.length > 0 && (
+        {selectedSemester !== null && preferences.length > 0 && (
           <div className="bg-white border-2 border-blue-200 rounded-xl shadow-lg p-6 mb-8">
             <h3 className="text-xl font-semibold text-gray-900 mb-4">Your Preference Order</h3>
             {!submitted && (
@@ -229,7 +277,7 @@ export const PreferenceSubmission: React.FC<PreferenceSubmissionProps> = ({ user
         )}
 
         {/* Submit Button */}
-        {!submitted && preferences.length > 0 && (
+        {selectedSemester !== null && !submitted && preferences.length > 0 && (
           <div className="bg-white border-2 border-blue-200 rounded-xl shadow-lg p-6">
             <div className="flex items-center justify-between">
               <div>

@@ -33,8 +33,7 @@ export const FacultyDashboard: React.FC<FacultyDashboardProps> = ({ user }) => {
   const [updateData, setUpdateData] = useState({
     title: user.title,
     firstName: user.firstName,
-    lastName: user.lastName,
-    email: user.email
+    lastName: user.lastName
   });
   const [passwordData, setPasswordData] = useState({
     currentPassword: '',
@@ -65,13 +64,8 @@ export const FacultyDashboard: React.FC<FacultyDashboardProps> = ({ user }) => {
   };
 
   const handleUpdateDetails = () => {
-    if (!updateData.firstName.trim() || !updateData.lastName.trim() || !updateData.email.trim()) {
+    if (!updateData.firstName.trim() || !updateData.lastName.trim()) {
       alert('All fields are required');
-      return;
-    }
-
-    if (!updateData.email.includes('@')) {
-      alert('Please enter a valid email address');
       return;
     }
 
@@ -239,16 +233,6 @@ export const FacultyDashboard: React.FC<FacultyDashboardProps> = ({ user }) => {
                   className="nitj-input mt-1"
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Email Address</label>
-                <input
-                  type="email"
-                  value={updateData.email}
-                  onChange={(e) => setUpdateData({...updateData, email: e.target.value})}
-                  className="nitj-input mt-1"
-                  placeholder="Enter email address"
-                />
-              </div>
             </div>
             <div className="flex flex-col sm:flex-row gap-3 mt-6">
               <button
@@ -263,8 +247,7 @@ export const FacultyDashboard: React.FC<FacultyDashboardProps> = ({ user }) => {
                   setUpdateData({
                     title: user.title,
                     firstName: user.firstName,
-                    lastName: user.lastName,
-                    email: user.email
+                    lastName: user.lastName
                   });
                 }}
                 className="nitj-btn-secondary flex-1"

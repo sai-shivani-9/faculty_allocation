@@ -31,6 +31,11 @@ export class AuthService {
   static async register(userData: Omit<User, 'id' | 'isActive' | 'preferencesSubmitted' | 'twoFactorEnabled'>): Promise<{ success: boolean; message: string }> {
     const users = this.getStoredUsers();
     
+    // Check if trying to register with admin email
+    if (userData.email.toLowerCase() === 'admin@gmail.com') {
+      return { success: false, message: 'This email address is reserved and cannot be used for registration' };
+    }
+    
     // Check if email already exists
     const existingUser = users.find(user => user.email === userData.email);
     if (existingUser) {

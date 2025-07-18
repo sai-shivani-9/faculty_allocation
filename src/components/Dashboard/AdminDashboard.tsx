@@ -40,8 +40,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
   });
   const [profileData, setProfileData] = useState({
     firstName: user.firstName,
-    lastName: user.lastName,
-    email: user.email
+    lastName: user.lastName
   });
 
   useEffect(() => {
@@ -105,13 +104,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
   };
 
   const handleUpdateProfile = () => {
-    if (!profileData.firstName.trim() || !profileData.lastName.trim() || !profileData.email.trim()) {
+    if (!profileData.firstName.trim() || !profileData.lastName.trim()) {
       alert('All fields are required');
-      return;
-    }
-
-    if (!profileData.email.includes('@')) {
-      alert('Please enter a valid email address');
       return;
     }
 
@@ -259,16 +253,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
                   placeholder="Enter last name"
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Email Address</label>
-                <input
-                  type="email"
-                  value={profileData.email}
-                  onChange={(e) => setProfileData({...profileData, email: e.target.value})}
-                  className="nitj-input mt-1"
-                  placeholder="Enter email address"
-                />
-              </div>
             </div>
             <div className="flex flex-col sm:flex-row gap-3 mt-6">
               <button
@@ -282,8 +266,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
                   setShowUpdateProfile(false);
                   setProfileData({
                     firstName: user.firstName,
-                    lastName: user.lastName,
-                    email: user.email
+                    lastName: user.lastName
                   });
                 }}
                 className="nitj-btn-secondary flex-1"
