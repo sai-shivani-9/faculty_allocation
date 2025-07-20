@@ -18,9 +18,11 @@ export const PreferenceSubmission: React.FC<PreferenceSubmissionProps> = ({ user
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [currentView, setCurrentView] = useState<'subject-selection' | 'submitted-view'>('subject-selection');
+  const [allowedSemesters, setAllowedSemesters] = useState<number[]>([]);
 
   useEffect(() => {
     loadEligibleSubjects();
+    setAllowedSemestersBasedOnDate();
     if (user.preferences) {
       setPreferences([...user.preferences]);
       setSubmitted(user.preferencesSubmitted);
@@ -29,6 +31,21 @@ export const PreferenceSubmission: React.FC<PreferenceSubmissionProps> = ({ user
       }
     }
   }, [user]);
+
+  const setAllowedSemestersBasedOnDate = () => {
+    const currentMonth = new Date().getMonth() + 1; // 1-12
+    let allowedSemesterTypes: number[] = [];
+    
+    // January to July (1-7): Odd semesters (1, 3, 5, 7)
+    // August to December (8-12): Even semesters (2, 4, 6, 8)
+    if (currentMonth >= 1 && currentMonth <= 7) {
+      allowedSemesterTypes = [1, 3, 5, 7];
+    } else {
+      allowedSemesterTypes = [2, 4, 6, 8];
+    }
+    
+    setAllowedSemesters(allowedSemesterTypes);
+  };
 
   const loadEligibleSubjects = () => {
     let subjects = getSubjectsByDepartment(user.department).filter(subject => {
@@ -46,6 +63,31 @@ export const PreferenceSubmission: React.FC<PreferenceSubmissionProps> = ({ user
     // Get unique semesters for the user type
     const semesters = [...new Set(subjects.map(s => s.semester))].sort();
     setAvailableSemesters(semesters);
+  };
+
+  const getFilteredEligibleSubjects = () => {
+    return eligibleSubjects.filter(subject => allowedSemesters.includes(subject.semester));
+  };
+
+  const getFilteredAvailableSemesters = () => {
+    return availableSemesters.filter(semester => allowedSemesters.includes(semester));
+  };
+
+  const getCurrentPeriodInfo = () => {
+    const currentMonth = new Date().getMonth() + 1;
+    if (currentMonth >= 1 && currentMonth <= 7) {
+      return {
+        period: 'January - July',
+        semesterType: 'Odd Semesters',
+        semesters: '1, 3, 5, 7'
+      };
+    } else {
+      return {
+        period: 'August - December',
+        semesterType: 'Even Semesters',
+        semesters: '2, 4, 6, 8'
+      };
+    }
   };
 
   const handleDragStart = (e: React.DragEvent, index: number) => {
@@ -106,7 +148,8 @@ export const PreferenceSubmission: React.FC<PreferenceSubmissionProps> = ({ user
   };
 
   const getFilteredSubjects = () => {
-    return selectedSemesterFilter ? eligibleSubjects.filter(s => s.semester === selectedSemesterFilter) : eligibleSubjects;
+    const baseSubjects = getFilteredEligibleSubjects();
+    return selectedSemesterFilter ? baseSubjects.filter(s => s.semester === selectedSemesterFilter) : baseSubjects;
   };
 
   // Submitted view - show semester filter and subjects
@@ -172,10 +215,10 @@ export const PreferenceSubmission: React.FC<PreferenceSubmissionProps> = ({ user
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
-                All Subjects ({eligibleSubjects.length})
+                All Subjects ({getFilteredEligibleSubjects().length})
               </button>
-              {availableSemesters.map(semester => {
-                const semesterSubjects = eligibleSubjects.filter(s => s.semester === semester);
+              {getFilteredAvailableSemesters().map(semester => {
+                const semesterSubjects = getFilteredEligibleSubjects().filter(s => s.semester === semester);
                 return (
                   <button
                     key={semester}
@@ -246,6 +289,7 @@ export const PreferenceSubmission: React.FC<PreferenceSubmissionProps> = ({ user
   // Subject selection view - show all subjects with semester filter
   if (currentView === 'subject-selection') {
     const filteredSubjects = getFilteredSubjects();
+    const periodInfo = getCurrentPeriodInfo();
     
     return (
       <div className="min-h-screen bg-white">
@@ -263,7 +307,7 @@ export const PreferenceSubmission: React.FC<PreferenceSubmissionProps> = ({ user
                 <div>
                   <h1 className="text-3xl font-bold">Submit Subject Preferences</h1>
                   <p className="text-blue-100">
-                    Select your preferred subjects - {getSemesterRange()}
+                    {periodInfo.semesterType} ({periodInfo.semesters}) - {getSemesterRange()}
                   </p>
                 </div>
               </div>
@@ -280,10 +324,10 @@ export const PreferenceSubmission: React.FC<PreferenceSubmissionProps> = ({ user
                         : 'bg-white bg-opacity-30 text-white hover:bg-opacity-40'
                     }`}
                   >
-                    All ({eligibleSubjects.length})
+                    All ({getFilteredEligibleSubjects().length})
                   </button>
-                  {availableSemesters.map(semester => {
-                    const semesterSubjects = eligibleSubjects.filter(s => s.semester === semester);
+                  {getFilteredAvailableSemesters().map(semester => {
+                    const semesterSubjects = getFilteredEligibleSubjects().filter(s => s.semester === semester);
                     return (
                       <button
                         key={semester}
@@ -303,17 +347,18 @@ export const PreferenceSubmission: React.FC<PreferenceSubmissionProps> = ({ user
             </div>
           </div>
 
-          {/* Info Alert */}
+          {/* Date-based Restriction Info */}
           <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-6 mb-8">
             <div className="flex items-center space-x-3">
               <AlertCircle className="h-6 w-6 text-blue-600" />
               <div>
                 <h3 className="text-lg font-semibold text-blue-900">
-                  {selectedSemesterFilter ? `Semester ${selectedSemesterFilter} Subjects` : 'All Available Subjects'}
+                  Current Selection Period: {periodInfo.period}
                 </h3>
                 <p className="text-blue-700">
-                  Select subjects you would like to teach. You can use the semester filter above to view specific semesters.
-                  Selected: {preferences.length} subjects
+                  You can currently select subjects from {periodInfo.semesterType} ({periodInfo.semesters}) only.
+                  {selectedSemesterFilter ? ` Viewing Semester ${selectedSemesterFilter} subjects.` : ' Use the semester filter above to view specific semesters.'}
+                  <br />Selected: {preferences.length} subjects
                 </p>
               </div>
             </div>
@@ -361,7 +406,12 @@ export const PreferenceSubmission: React.FC<PreferenceSubmissionProps> = ({ user
             {filteredSubjects.length === 0 && (
               <div className="text-center py-8">
                 <BookOpen className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                <p className="text-gray-600">No subjects found for the selected filter.</p>
+                <p className="text-gray-600">
+                  {selectedSemesterFilter 
+                    ? `No subjects available for Semester ${selectedSemesterFilter} in the current period.`
+                    : `No subjects available for ${periodInfo.semesterType} in the current period.`
+                  }
+                </p>
               </div>
             )}
           </div>
