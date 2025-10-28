@@ -123,16 +123,21 @@ export const PreferenceSubmission: React.FC<PreferenceSubmissionProps> = ({ user
     }
   };
 
-  const handleSubmitPreferences = () => {
+  const handleSubmitPreferences = async () => {
     if (preferences.length === 0) {
       alert('Please select at least one subject before submitting preferences.');
       return;
     }
 
-    AuthService.updateUserPreferences(user.id, preferences);
-    setSubmitted(true);
-    setCurrentView('submitted-view');
-    alert('Preferences submitted successfully!');
+    try {
+      await AuthService.updateUserPreferences(user.id, preferences);
+      setSubmitted(true);
+      setCurrentView('submitted-view');
+      alert('Preferences submitted successfully!');
+    } catch (error) {
+      alert('Failed to submit preferences. Please try again.');
+      console.error('Error submitting preferences:', error);
+    }
   };
 
   const handleDownloadPreferences = () => {

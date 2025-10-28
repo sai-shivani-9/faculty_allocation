@@ -47,8 +47,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
     loadStats();
   }, []);
 
-  const loadStats = () => {
-    const dashboardStats = AllocationService.getDashboardStats();
+  const loadStats = async () => {
+    const dashboardStats = await AllocationService.getDashboardStats();
     setStats(dashboardStats);
   };
 
@@ -89,15 +89,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
       return;
     }
 
-    // Update password for admin
-    const users = AuthService.getStoredUsers();
-    const userIndex = users.findIndex(u => u.id === user.id);
-    if (userIndex !== -1) {
-      users[userIndex].password = passwordData.newPassword;
-      AuthService.storeUsers(users);
-      AuthService.setCurrentUser(users[userIndex]);
-    }
-    
+    const updatedUser = { ...user, password: passwordData.newPassword };
+    AuthService.setCurrentUser(updatedUser);
+
     alert('Password changed successfully');
     setShowChangePassword(false);
     setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
@@ -109,15 +103,9 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
       return;
     }
 
-    // Update profile for admin
-    const users = AuthService.getStoredUsers();
-    const userIndex = users.findIndex(u => u.id === user.id);
-    if (userIndex !== -1) {
-      users[userIndex] = { ...users[userIndex], ...profileData };
-      AuthService.storeUsers(users);
-      AuthService.setCurrentUser(users[userIndex]);
-    }
-    
+    const updatedUser = { ...user, ...profileData };
+    AuthService.setCurrentUser(updatedUser);
+
     alert('Profile updated successfully');
     setShowUpdateProfile(false);
     window.location.reload();

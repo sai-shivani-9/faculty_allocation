@@ -13,11 +13,15 @@ export const FacultyListModal: React.FC<FacultyListModalProps> = ({ facultyType,
   const [faculty, setFaculty] = useState<User[]>([]);
 
   useEffect(() => {
-    const users = AuthService.getStoredUsers();
-    const filteredFaculty = users
-      .filter(user => user.userType === facultyType)
-      .sort((a, b) => new Date(a.joiningDate).getTime() - new Date(b.joiningDate).getTime());
-    setFaculty(filteredFaculty);
+    const loadFaculty = async () => {
+      const users = await AuthService.getStoredUsers();
+      const filteredFaculty = users
+        .filter(user => user.userType === facultyType)
+        .sort((a, b) => new Date(a.joiningDate).getTime() - new Date(b.joiningDate).getTime());
+      setFaculty(filteredFaculty);
+    };
+
+    loadFaculty();
   }, [facultyType]);
 
   const handleDownloadPDF = () => {
