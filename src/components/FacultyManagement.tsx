@@ -16,21 +16,18 @@ export const FacultyManagement: React.FC<FacultyManagementProps> = ({ onBack }) 
     loadFaculty();
   }, []);
 
-  const loadFaculty = async () => {
-    const users = await AuthService.getStoredUsers();
+  const loadFaculty = () => {
+    const users = AuthService.getStoredUsers();
     setFaculty(users);
   };
 
-  const handleDeleteFaculty = async (facultyId: string, facultyName: string) => {
+  const handleDeleteFaculty = (facultyId: string, facultyName: string) => {
     if (window.confirm(`Are you sure you want to delete ${facultyName}? This action cannot be undone.`)) {
-      try {
-        await AuthService.deleteUser(facultyId);
-        await loadFaculty();
-        alert('Faculty member deleted successfully');
-      } catch (error) {
-        alert('Failed to delete faculty member');
-        console.error('Error deleting faculty:', error);
-      }
+      const users = AuthService.getStoredUsers();
+      const updatedUsers = users.filter(user => user.id !== facultyId);
+      AuthService.storeUsers(updatedUsers);
+      loadFaculty();
+      alert('Faculty member deleted successfully');
     }
   };
 

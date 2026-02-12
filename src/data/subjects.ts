@@ -263,7 +263,3 @@ export const getSubjectsByDepartment = (department: string): Subject[] => {
       return cseSubjects;
   }
 };
-
-export const getAllSubjectsArray = (): Subject[] => {
-  return [...cseSubjects, ...eceSubjects, ...iceSubjects];
-};

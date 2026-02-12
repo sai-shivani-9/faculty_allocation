@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { User } from './types';
 import { AuthService } from './services/auth';
-import { InitService } from './services/initService';
 import { Layout } from './components/Layout';
 import { LoginForm } from './components/LoginForm';
 import { AdminLoginForm } from './components/AdminLoginForm';
@@ -16,6 +15,7 @@ function App() {
   const [isAdminLogin, setIsAdminLogin] = useState(false);
 
   useEffect(() => {
+    // Check URL for admin login
     const path = window.location.pathname;
     if (path === '/admin-login') {
       setIsAdminLogin(true);
@@ -23,17 +23,12 @@ function App() {
   }, []);
 
   useEffect(() => {
-    const initApp = async () => {
-      await InitService.initialize();
-
-      const currentUser = AuthService.getCurrentUser();
-      if (currentUser) {
-        setUser(currentUser);
-      }
-      setIsLoading(false);
-    };
-
-    initApp();
+    // Check if user is already logged in
+    const currentUser = AuthService.getCurrentUser();
+    if (currentUser) {
+      setUser(currentUser);
+    }
+    setIsLoading(false);
   }, []);
 
   const handleLogin = (loggedInUser: User) => {

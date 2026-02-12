@@ -49,10 +49,10 @@ export const FacultyDashboard: React.FC<FacultyDashboardProps> = ({ user }) => {
     return <PreferenceSubmission user={user} onBack={() => setCurrentView('dashboard')} />;
   }
 
-  const loadAllocation = async () => {
-    const userAllocation = await AllocationService.getAllocationByUser(user.id);
+  const loadAllocation = () => {
+    const userAllocation = AllocationService.getAllocationByUser(user.id);
     if (userAllocation) {
-      const subject = await AllocationService.getSubjectById(userAllocation.subjectId);
+      const subject = AllocationService.getSubjectById(userAllocation.subjectId);
       setAllocation({ ...userAllocation, subject });
     }
   };
@@ -69,11 +69,17 @@ export const FacultyDashboard: React.FC<FacultyDashboardProps> = ({ user }) => {
       return;
     }
 
-    const updatedUser = { ...user, ...updateData };
-    AuthService.setCurrentUser(updatedUser);
-    alert('Details updated successfully');
-    setShowUpdateDetails(false);
-    window.location.reload();
+    // Update user details
+    const users = AuthService.getStoredUsers();
+    const userIndex = users.findIndex(u => u.id === user.id);
+    if (userIndex !== -1) {
+      users[userIndex] = { ...users[userIndex], ...updateData };
+      AuthService.storeUsers(users);
+      AuthService.setCurrentUser(users[userIndex]);
+      alert('Details updated successfully');
+      setShowUpdateDetails(false);
+      window.location.reload(); // Refresh to show updated details
+    }
   };
 
   const handleChangePassword = () => {
@@ -92,11 +98,17 @@ export const FacultyDashboard: React.FC<FacultyDashboardProps> = ({ user }) => {
       return;
     }
 
-    const updatedUser = { ...user, password: passwordData.newPassword };
-    AuthService.setCurrentUser(updatedUser);
-    alert('Password changed successfully');
-    setShowChangePassword(false);
-    setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    // Update password
+    const users = AuthService.getStoredUsers();
+    const userIndex = users.findIndex(u => u.id === user.id);
+    if (userIndex !== -1) {
+      users[userIndex].password = passwordData.newPassword;
+      AuthService.storeUsers(users);
+      AuthService.setCurrentUser(users[userIndex]);
+      alert('Password changed successfully');
+      setShowChangePassword(false);
+      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+    }
   };
   return (
     <div className="space-y-8">
