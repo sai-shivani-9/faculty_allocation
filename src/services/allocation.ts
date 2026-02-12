@@ -13,42 +13,56 @@ export class AllocationService {
   }
 
   static async performAllocation(): Promise<{ success: boolean; message: string; allocations?: Allocation[] }> {
+    return this.performAllocationWithOrder('top-to-bottom');
+  }
+
+  static async performReverseAllocation(): Promise<{ success: boolean; message: string; allocations?: Allocation[] }> {
+    return this.performAllocationWithOrder('bottom-to-top');
+  }
+
+  private static async performAllocationWithOrder(order: 'top-to-bottom' | 'bottom-to-top'): Promise<{ success: boolean; message: string; allocations?: Allocation[] }> {
     const users = AuthService.getStoredUsers();
     const allAllocations: Allocation[] = [];
-    
+
     // Get all departments
     const departments = [
       'Computer Science and Engineering',
-      'Electronics and Communication Engineering', 
+      'Electronics and Communication Engineering',
       'Instrumentation and Control Engineering'
     ];
 
     let totalAllocated = 0;
 
     for (const department of departments) {
-      const departmentUsers = users.filter(user => 
+      const departmentUsers = users.filter(user =>
         user.department === department && user.preferencesSubmitted
       );
-      
+
       if (departmentUsers.length === 0) continue;
 
       // Separate by designation
       const professors = departmentUsers.filter(user => user.userType === 'Professor');
       const assistantProfessors = departmentUsers.filter(user => user.userType === 'Assistant Professor');
 
-      // Sort by joining date (earlier first), then by registration timestamp for ties
+      // Sort by joining date - direction depends on order parameter
       const sortByPriority = (a: User, b: User) => {
         const dateA = new Date(a.joiningDate);
         const dateB = new Date(b.joiningDate);
-        
+
         if (dateA.getTime() !== dateB.getTime()) {
-          return dateA.getTime() - dateB.getTime();
+          // Top-to-bottom: earlier first (ascending)
+          // Bottom-to-top: later first (descending)
+          return order === 'top-to-bottom'
+            ? dateA.getTime() - dateB.getTime()
+            : dateB.getTime() - dateA.getTime();
         }
-        
+
         // If joining dates are same, use registration timestamp (user ID contains timestamp)
         const timestampA = parseInt(a.id.split('_')[1] || '0');
         const timestampB = parseInt(b.id.split('_')[1] || '0');
-        return timestampA - timestampB;
+        return order === 'top-to-bottom'
+          ? timestampA - timestampB
+          : timestampB - timestampA;
       };
 
       professors.sort(sortByPriority);
@@ -80,7 +94,7 @@ export class AllocationService {
                 allAllocations.push(allocation);
                 allocatedSubjects.add(subjectId);
                 totalAllocated++;
-                
+
                 // Update user's allocated subject
                 user.allocatedSubject = subjectId;
                 break;
@@ -101,13 +115,14 @@ export class AllocationService {
 
     // Update users with allocated subjects
     AuthService.storeUsers(users);
-    
+
     // Store allocations
     this.storeAllocations(allAllocations);
 
-    return { 
-      success: true, 
-      message: `Allocation completed successfully across all departments. ${totalAllocated} subjects allocated based on hierarchy and joining date priority.`,
+    const orderText = order === 'top-to-bottom' ? 'Top to Bottom (Senior to Junior)' : 'Bottom to Top (Junior to Senior)';
+    return {
+      success: true,
+      message: `Allocation completed successfully across all departments using ${orderText} approach. ${totalAllocated} subjects allocated. Each subject uniquely assigned to prevent duplicate allocations.`,
       allocations: allAllocations
     };
   }

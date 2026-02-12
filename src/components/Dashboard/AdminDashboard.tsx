@@ -5,20 +5,22 @@ import { AuthService } from '../../services/auth';
 import { FacultyManagement } from '../FacultyManagement';
 import { SubjectManagement } from '../SubjectManagement';
 import { PDFService } from '../../services/pdfService';
-import { 
-  Users, 
-  BookOpen, 
-  CheckCircle, 
-  Clock, 
-  Play, 
-  Download, 
+import {
+  Users,
+  BookOpen,
+  CheckCircle,
+  Clock,
+  Play,
+  Download,
   BarChart3,
   FileText,
   GraduationCap,
   UserCheck,
   Lock,
   Settings,
-  User as UserIcon
+  User as UserIcon,
+  ArrowDown,
+  ArrowUp
 } from 'lucide-react';
 
 interface AdminDashboardProps {
@@ -52,13 +54,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
     setStats(dashboardStats);
   };
 
-  const handleProceedAllocation = async () => {
+  const handleProceedAllocation = async (allocationMode: 'top-to-bottom' | 'bottom-to-top' = 'top-to-bottom') => {
     setLoading(true);
     setAllocationMessage('');
     setShowAllocationResults(false);
 
     try {
-      const result = await AllocationService.performAllocation();
+      const result = allocationMode === 'top-to-bottom'
+        ? await AllocationService.performAllocation()
+        : await AllocationService.performReverseAllocation();
       setAllocationMessage(result.message);
       setShowAllocationResults(true);
       loadStats(); // Refresh stats after allocation
@@ -398,34 +402,70 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
           </div>
         )}
 
-        <div className="flex flex-col sm:flex-row flex-wrap gap-4">
-          <button
-            onClick={handleProceedAllocation}
-            disabled={loading}
-            className="flex items-center justify-center space-x-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed shadow-lg transition-all duration-200"
-          >
-            {loading ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                <span>Processing...</span>
-              </>
-            ) : (
-              <>
-                <Play className="h-5 w-5" />
-                <span>Execute Allocation Process</span>
-              </>
-            )}
-          </button>
+        <div className="space-y-4">
+          {/* Allocation Buttons */}
+          <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
+            <h4 className="text-sm font-semibold text-gray-900 mb-3">Allocation Methods</h4>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button
+                onClick={() => handleProceedAllocation('top-to-bottom')}
+                disabled={loading}
+                className="flex-1 flex items-center justify-center space-x-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed shadow-lg transition-all duration-200"
+              >
+                {loading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    <span>Processing...</span>
+                  </>
+                ) : (
+                  <>
+                    <ArrowUp className="h-5 w-5" />
+                    <span>Allocate Top to Bottom</span>
+                  </>
+                )}
+              </button>
 
+              <button
+                onClick={() => handleProceedAllocation('bottom-to-top')}
+                disabled={loading}
+                className="flex-1 flex items-center justify-center space-x-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed shadow-lg transition-all duration-200"
+              >
+                {loading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    <span>Processing...</span>
+                  </>
+                ) : (
+                  <>
+                    <ArrowDown className="h-5 w-5" />
+                    <span>Allocate Bottom to Top</span>
+                  </>
+                )}
+              </button>
+            </div>
+            <div className="mt-3 bg-white rounded-lg p-3">
+              <p className="text-xs text-gray-600">
+                <strong>Top to Bottom:</strong> Allocates subjects to senior faculty first (earliest joining date first).
+              </p>
+              <p className="text-xs text-gray-600 mt-2">
+                <strong>Bottom to Top:</strong> Allocates subjects to junior faculty first (latest joining date first).
+              </p>
+              <p className="text-xs text-blue-700 mt-2 font-medium">
+                Both methods ensure each subject is uniquely assigned to prevent duplicate allocations.
+              </p>
+            </div>
+          </div>
+
+          {/* Other Action Buttons */}
           <div className="flex flex-col sm:flex-row gap-4">
             <button
-            onClick={handleDownloadReport}
-            className="flex items-center justify-center space-x-2 px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium shadow-lg transition-all duration-200"
-          >
-            <Download className="h-5 w-5" />
-            <span>Download Comprehensive Report</span>
-          </button>
-            
+              onClick={handleDownloadReport}
+              className="flex items-center justify-center space-x-2 px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium shadow-lg transition-all duration-200"
+            >
+              <Download className="h-5 w-5" />
+              <span>Download Comprehensive Report</span>
+            </button>
+
             <button
               onClick={() => setShowUpdateProfile(true)}
               className="flex items-center justify-center space-x-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium shadow-lg transition-all duration-200"
