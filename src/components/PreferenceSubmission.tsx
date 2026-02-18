@@ -124,12 +124,19 @@ export const PreferenceSubmission: React.FC<PreferenceSubmissionProps> = ({ user
   };
 
   const handleSubmitPreferences = () => {
+    const filteredEligibleSubjects = getFilteredEligibleSubjects();
+
     if (preferences.length === 0) {
       alert('Please select at least one subject before submitting preferences.');
       return;
     }
 
-    AuthService.updateUserPreferences(user.id, preferences);
+    if (preferences.length !== filteredEligibleSubjects.length) {
+      alert(`You must select ALL available subjects for your semester. You have selected ${preferences.length} out of ${filteredEligibleSubjects.length} available subjects.`);
+      return;
+    }
+
+    AuthService.updateUserPreferences(user.id, preferences, Date.now());
     setSubmitted(true);
     setCurrentView('submitted-view');
     alert('Preferences submitted successfully!');
@@ -454,19 +461,36 @@ export const PreferenceSubmission: React.FC<PreferenceSubmissionProps> = ({ user
             </div>
           )}
 
-          {/* Submit Button */}
+          {/* Submit Button and Validation */}
           {preferences.length > 0 && (
-            <div className="bg-white border-2 border-blue-200 rounded-xl shadow-lg p-6">
+            <div className={`rounded-xl shadow-lg p-6 ${
+              preferences.length === getFilteredEligibleSubjects().length
+                ? 'bg-green-50 border-2 border-green-200'
+                : 'bg-yellow-50 border-2 border-yellow-200'
+            }`}>
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900">Ready to Submit?</h3>
-                  <p className="text-sm text-gray-600">
-                    You have selected {preferences.length} subjects. Click submit to finalize your preferences.
+                  <p className={`text-sm ${
+                    preferences.length === getFilteredEligibleSubjects().length
+                      ? 'text-green-700'
+                      : 'text-yellow-700'
+                  }`}>
+                    {preferences.length === getFilteredEligibleSubjects().length ? (
+                      <>All {preferences.length} available subjects selected. Click submit to finalize your preferences.</>
+                    ) : (
+                      <>You have selected {preferences.length} out of {getFilteredEligibleSubjects().length} available subjects. You must select ALL subjects to submit.</>
+                    )}
                   </p>
                 </div>
                 <button
                   onClick={handleSubmitPreferences}
-                  className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-all duration-200"
+                  disabled={preferences.length !== getFilteredEligibleSubjects().length}
+                  className={`px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
+                    preferences.length === getFilteredEligibleSubjects().length
+                      ? 'bg-blue-600 hover:bg-blue-700 text-white cursor-pointer'
+                      : 'bg-gray-400 text-white cursor-not-allowed opacity-50'
+                  }`}
                 >
                   Submit Preferences
                 </button>

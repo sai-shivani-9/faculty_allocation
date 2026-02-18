@@ -11,6 +11,7 @@ export interface User {
   isActive: boolean;
   preferences?: string[];
   preferencesSubmitted: boolean;
+  preferencesSubmittedAt?: number;
   allocatedSubject?: string;
   twoFactorEnabled: boolean;
 }

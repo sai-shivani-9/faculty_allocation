@@ -97,15 +97,16 @@ export class AuthService {
     return { success: true, message: 'Login successful', user };
   }
 
-  static updateUserPreferences(userId: string, preferences: string[]): void {
+  static updateUserPreferences(userId: string, preferences: string[], submittedAt?: number): void {
     const users = this.getStoredUsers();
     const userIndex = users.findIndex(user => user.id === userId);
-    
+
     if (userIndex !== -1) {
       users[userIndex].preferences = preferences;
       users[userIndex].preferencesSubmitted = true;
+      users[userIndex].preferencesSubmittedAt = submittedAt || Date.now();
       this.storeUsers(users);
-      
+
       // Update current user if it's the same user
       const currentUser = this.getCurrentUser();
       if (currentUser && currentUser.id === userId) {

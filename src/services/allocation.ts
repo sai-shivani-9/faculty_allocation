@@ -45,24 +45,26 @@ export class AllocationService {
       const assistantProfessors = departmentUsers.filter(user => user.userType === 'Assistant Professor');
 
       // Sort by joining date - direction depends on order parameter
+      // Secondary sort by preferences submission time (earlier first for both directions)
       const sortByPriority = (a: User, b: User) => {
         const dateA = new Date(a.joiningDate);
         const dateB = new Date(b.joiningDate);
 
         if (dateA.getTime() !== dateB.getTime()) {
-          // Top-to-bottom: earlier first (ascending)
-          // Bottom-to-top: later first (descending)
-          return order === 'top-to-bottom'
-            ? dateA.getTime() - dateB.getTime()
-            : dateB.getTime() - dateA.getTime();
+          // Top-to-bottom: earliest joining date first (ascending)
+          // Bottom-to-top: latest joining date first (descending)
+          if (order === 'top-to-bottom') {
+            return dateA.getTime() - dateB.getTime();
+          } else {
+            return dateB.getTime() - dateA.getTime();
+          }
         }
 
-        // If joining dates are same, use registration timestamp (user ID contains timestamp)
-        const timestampA = parseInt(a.id.split('_')[1] || '0');
-        const timestampB = parseInt(b.id.split('_')[1] || '0');
-        return order === 'top-to-bottom'
-          ? timestampA - timestampB
-          : timestampB - timestampA;
+        // If joining dates are same, use preference submission timestamp
+        // Earlier submission gets priority (ascending in both cases)
+        const submitTimeA = a.preferencesSubmittedAt || 0;
+        const submitTimeB = b.preferencesSubmittedAt || 0;
+        return submitTimeA - submitTimeB;
       };
 
       professors.sort(sortByPriority);
@@ -77,7 +79,12 @@ export class AllocationService {
         userGroup.forEach(user => {
           if (!user.preferences) return;
 
-          for (const subjectId of user.preferences) {
+          // For bottom-to-top, reverse the preference order for subject selection
+          const preferencesOrder = order === 'bottom-to-top'
+            ? [...user.preferences].reverse()
+            : user.preferences;
+
+          for (const subjectId of preferencesOrder) {
             if (!allocatedSubjects.has(subjectId)) {
               const subject = eligibleSubjects.find(s => s.id === subjectId);
               if (subject) {
