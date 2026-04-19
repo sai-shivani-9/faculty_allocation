@@ -54,18 +54,23 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
     setStats(dashboardStats);
   };
 
-  const handleProceedAllocation = async (allocationMode: 'top-to-bottom' | 'bottom-to-top' = 'top-to-bottom') => {
+  const handleProceedAllocation = async (strategy: 'top-top' | 'top-bottom' | 'top-random') => {
     setLoading(true);
     setAllocationMessage('');
     setShowAllocationResults(false);
 
     try {
-      const result = allocationMode === 'top-to-bottom'
-        ? await AllocationService.performAllocation()
-        : await AllocationService.performReverseAllocation();
+      let result;
+      if (strategy === 'top-top') {
+        result = await AllocationService.performAllocation();
+      } else if (strategy === 'top-bottom') {
+        result = await AllocationService.performReverseAllocation();
+      } else {
+        result = await AllocationService.performRandomAllocation();
+      }
       setAllocationMessage(result.message);
       setShowAllocationResults(true);
-      loadStats(); // Refresh stats after allocation
+      loadStats();
     } catch (error) {
       setAllocationMessage('An error occurred during allocation');
     } finally {
@@ -405,12 +410,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
         <div className="space-y-4">
           {/* Allocation Buttons */}
           <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
-            <h4 className="text-sm font-semibold text-gray-900 mb-3">Allocation Methods</h4>
-            <div className="flex flex-col sm:flex-row gap-3">
+            <h4 className="text-sm font-semibold text-gray-900 mb-3">Allocation Strategies</h4>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <button
-                onClick={() => handleProceedAllocation('top-to-bottom')}
+                onClick={() => handleProceedAllocation('top-top')}
                 disabled={loading}
-                className="flex-1 flex items-center justify-center space-x-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed shadow-lg transition-all duration-200"
+                className="flex items-center justify-center space-x-2 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed shadow-lg transition-all duration-200"
               >
                 {loading ? (
                   <>
@@ -420,15 +425,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
                 ) : (
                   <>
                     <ArrowUp className="h-5 w-5" />
-                    <span>Allocate Top to Bottom</span>
+                    <span>Top-Top</span>
                   </>
                 )}
               </button>
 
               <button
-                onClick={() => handleProceedAllocation('bottom-to-top')}
+                onClick={() => handleProceedAllocation('top-bottom')}
                 disabled={loading}
-                className="flex-1 flex items-center justify-center space-x-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed shadow-lg transition-all duration-200"
+                className="flex items-center justify-center space-x-2 px-4 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed shadow-lg transition-all duration-200"
               >
                 {loading ? (
                   <>
@@ -438,21 +443,43 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ user }) => {
                 ) : (
                   <>
                     <ArrowDown className="h-5 w-5" />
-                    <span>Allocate Bottom to Top</span>
+                    <span>Top-Bottom</span>
+                  </>
+                )}
+              </button>
+
+              <button
+                onClick={() => handleProceedAllocation('top-random')}
+                disabled={loading}
+                className="flex items-center justify-center space-x-2 px-4 py-3 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed shadow-lg transition-all duration-200"
+              >
+                {loading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    <span>Processing...</span>
+                  </>
+                ) : (
+                  <>
+                    <Play className="h-5 w-5" />
+                    <span>Top-Random</span>
                   </>
                 )}
               </button>
             </div>
-            <div className="mt-3 bg-white rounded-lg p-3">
-              <p className="text-xs text-gray-600">
-                <strong>Top to Bottom:</strong> Allocates subjects to senior faculty first (earliest joining date first).
-              </p>
-              <p className="text-xs text-gray-600 mt-2">
-                <strong>Bottom to Top:</strong> Allocates subjects to junior faculty first (latest joining date first).
-              </p>
-              <p className="text-xs text-blue-700 mt-2 font-medium">
-                Both methods ensure each subject is uniquely assigned to prevent duplicate allocations.
-              </p>
+            <div className="mt-4 bg-white rounded-lg p-4 space-y-3">
+              <div>
+                <p className="text-sm font-semibold text-blue-700 mb-1">Top-Top</p>
+                <p className="text-xs text-gray-600">Both subjects allocated from the top of preference list, continuing downward as needed.</p>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-emerald-700 mb-1">Top-Bottom</p>
+                <p className="text-xs text-gray-600">One subject from the top and one from the bottom of preference list, alternating as needed.</p>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-orange-700 mb-1">Top-Random</p>
+                <p className="text-xs text-gray-600">First subject from top of preference list, second subject chosen randomly from available options.</p>
+              </div>
+              <p className="text-xs text-blue-700 font-medium mt-3">Priority: Faculty with earliest joining date, ties broken by earliest preference submission time.</p>
             </div>
           </div>
 
